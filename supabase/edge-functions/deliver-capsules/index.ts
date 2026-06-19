@@ -29,8 +29,9 @@ function isCapsuleDue(capsule: CapsuleRow, nowMs: number): boolean {
   if (capsule.delivery_at) {
     return new Date(capsule.delivery_at).getTime() <= nowMs;
   }
-  const today = new Date().toISOString().split("T")[0];
-  return capsule.delivery_date <= today;
+  // Date-only fallback: treat delivery_date as end of that calendar day (UTC)
+  const endOfDeliveryDay = new Date(`${capsule.delivery_date}T23:59:59.999Z`).getTime();
+  return endOfDeliveryDay <= nowMs;
 }
 
 serve(async (req) => {
@@ -57,9 +58,8 @@ serve(async (req) => {
 
     if (error) throw error;
 
-    const capsules = ((lockedCapsules ?? []) as CapsuleRow[]).filter((c) =>
-      isCapsuleDue(c, nowMs)
-    );
+    const locked = (lockedCapsules ?? []) as CapsuleRow[];
+    const capsules = locked.filter((c) => isCapsuleDue(c, nowMs));
 
     const results = [];
 
@@ -135,7 +135,39 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ processed: results.length, results }),
+      JSON.stringify({
+        processed: results.length,
+        results,
+        debug: {
+          lockedTotal: locked.length,
+          dueCount: capsules.length,
+          now: new Date(nowMs).toISOString(),
+          pending: locked
+            .filter((c) => !isCapsuleDue(c, nowMs))
+            .map((c) => ({
+              id: c.id,
+              status: "locked",
+              recipient: c.recipient_email,
+              delivery_at: c.delivery_at,
+              delivery_date: c.delivery_date,
+              dueInSeconds: c.delivery_at
+                ? Math.round(
+                    (new Date(c.delivery_at).getTime() - nowMs) / 1000
+                  )
+                : null,
+            })),
+          failed: locked.length === 0
+            ? (
+                await supabase
+                  .from("capsules")
+                  .select("id, recipient_email, delivery_at, status")
+                  .eq("status", "failed")
+                  .order("created_at", { ascending: false })
+                  .limit(5)
+              ).data
+            : undefined,
+        },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

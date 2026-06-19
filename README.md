@@ -41,10 +41,9 @@ cp .env.example .env
 
 ### 5. Edge Function secrets
 
-In Supabase Dashboard → Edge Functions → Secrets:
+In Supabase Dashboard → Edge Functions → Secrets, add **only** your custom secrets (do not add `SUPABASE_*` names — Supabase injects `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` automatically):
 
 ```
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 RESEND_API_KEY=re_your_key
 APP_URL=afterward://capsule
 ```
