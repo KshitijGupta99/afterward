@@ -23,6 +23,7 @@ export interface Capsule {
   status: CapsuleStatus;
   created_at: string;
   delivered_at: string | null;
+  opened_at: string | null;
 }
 
 export interface CapsuleDraft {

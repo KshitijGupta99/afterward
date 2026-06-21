@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { View, ScrollView, Image, Share, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -5,14 +6,34 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { X, Share2 } from "lucide-react-native";
 import { Screen, BodyText } from "@/components/layout/Screen";
 import { WaxSeal } from "@/components/capsule/WaxSeal";
-import { useCapsule } from "@/hooks/useCapsules";
-import { formatCapsuleDelivery, formatDisplayDateTime, formatMonthYear, isCapsuleOverdue, isCapsuleFailed } from "@/utils/dates";
+import { useAuth } from "@/hooks/useAuth";
+import { useCapsule, useMarkCapsuleOpened } from "@/hooks/useCapsules";
+import {
+  formatCapsuleDelivery,
+  formatDisplayDateTime,
+  formatMonthYear,
+  isCapsuleOverdue,
+  isCapsuleFailed,
+} from "@/utils/dates";
+import { canViewerOpenCapsule, isCapsuleSentToOthers } from "@/utils/capsule";
 import { COLORS } from "@/constants";
 
 export default function CapsuleRevealScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const { data: capsule, isLoading } = useCapsule(id);
+  const markOpened = useMarkCapsuleOpened();
+
+  const canOpen = capsule
+    ? canViewerOpenCapsule(capsule, user?.id, user?.email)
+    : false;
+
+  useEffect(() => {
+    if (capsule?.status === "delivered" && canOpen && !capsule.opened_at && id) {
+      markOpened.mutate(id);
+    }
+  }, [capsule?.status, capsule?.opened_at, canOpen, id]);
 
   if (isLoading || !capsule) {
     return (
@@ -62,10 +83,34 @@ export default function CapsuleRevealScreen() {
     );
   }
 
+  if (!canOpen) {
+    const deliveredLabel = capsule.delivered_at
+      ? formatDisplayDateTime(capsule.delivered_at)
+      : formatCapsuleDelivery(capsule.delivery_at, capsule.delivery_date);
+
+    return (
+      <Screen>
+        <SafeAreaView className="flex-1 justify-center items-center px-8 gap-4">
+          <WaxSeal state="overdue" size={72} label={`Delivered ${deliveredLabel}`} />
+          <BodyText muted className="text-center">
+            {isCapsuleSentToOthers(capsule, user?.id)
+              ? `This was delivered to ${capsule.recipient_email}. Only they can open it.`
+              : "You do not have permission to open this capsule."}
+          </BodyText>
+          <Pressable onPress={() => router.back()}>
+            <BodyText className="text-dusk">Go back</BodyText>
+          </Pressable>
+        </SafeAreaView>
+      </Screen>
+    );
+  }
+
   const writtenDate = formatMonthYear(capsule.created_at.split("T")[0]);
-  const openedDate = capsule.delivered_at
-    ? formatDisplayDateTime(capsule.delivered_at)
-    : formatCapsuleDelivery(capsule.delivery_at, capsule.delivery_date);
+  const readDate = capsule.opened_at
+    ? formatDisplayDateTime(capsule.opened_at)
+    : capsule.delivered_at
+      ? formatDisplayDateTime(capsule.delivered_at)
+      : formatCapsuleDelivery(capsule.delivery_at, capsule.delivery_date);
 
   const handleShare = async () => {
     await Share.share({
@@ -111,7 +156,8 @@ export default function CapsuleRevealScreen() {
 
           <Animated.View entering={FadeInDown.duration(800).delay(200)} className="gap-8">
             <BodyText muted className="text-center text-sm">
-              Written {writtenDate}, opened {openedDate}
+              Written {writtenDate}
+              {capsule.opened_at ? `, opened ${readDate}` : `, arrived ${readDate}`}
             </BodyText>
 
             {capsule.title ? (

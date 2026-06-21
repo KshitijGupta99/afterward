@@ -130,6 +130,16 @@ export async function fetchCapsule(id: string): Promise<Capsule | null> {
   return data;
 }
 
+export async function markCapsuleOpened(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("capsules")
+    .update({ opened_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("opened_at", null);
+
+  return !error;
+}
+
 export async function fetchProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")

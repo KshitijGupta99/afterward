@@ -14,19 +14,43 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCapsules } from "@/hooks/useCapsules";
 import { useNow } from "@/hooks/useNow";
 import { isCapsuleOverdue, isCapsuleFailed } from "@/utils/dates";
+import {
+  isCapsuleOpened,
+  canViewerOpenCapsule,
+  isCapsuleSentToOthers,
+} from "@/utils/capsule";
 import type { Capsule } from "@/types";
 
 type VaultItem =
   | { kind: "header"; id: string; title: string }
   | { kind: "capsule"; id: string; capsule: Capsule };
 
-function buildVaultItems(capsules: Capsule[], nowMs: number): VaultItem[] {
+function buildVaultItems(
+  capsules: Capsule[],
+  nowMs: number,
+  viewerUserId?: string,
+  viewerEmail?: string | null
+): VaultItem[] {
   const overdue = capsules.filter((c) => isCapsuleOverdue(c, nowMs));
   const failed = capsules.filter((c) => isCapsuleFailed(c));
   const sealed = capsules.filter(
     (c) => c.status === "locked" && !isCapsuleOverdue(c, nowMs)
   );
-  const opened = capsules.filter((c) => c.status === "delivered");
+  const readyToOpen = capsules.filter(
+    (c) =>
+      c.status === "delivered" &&
+      !isCapsuleOpened(c) &&
+      canViewerOpenCapsule(c, viewerUserId, viewerEmail)
+  );
+  const deliveredWaiting = capsules.filter(
+    (c) =>
+      c.status === "delivered" &&
+      !isCapsuleOpened(c) &&
+      isCapsuleSentToOthers(c, viewerUserId)
+  );
+  const opened = capsules.filter(
+    (c) => c.status === "delivered" && isCapsuleOpened(c)
+  );
 
   const items: VaultItem[] = [];
 
@@ -41,6 +65,16 @@ function buildVaultItems(capsules: Capsule[], nowMs: number): VaultItem[] {
   if (sealed.length) {
     items.push({ kind: "header", id: "hdr-sealed", title: "Sealed" });
     sealed.forEach((c) => items.push({ kind: "capsule", id: c.id, capsule: c }));
+  }
+  if (readyToOpen.length) {
+    items.push({ kind: "header", id: "hdr-ready", title: "Ready to open" });
+    readyToOpen.forEach((c) => items.push({ kind: "capsule", id: c.id, capsule: c }));
+  }
+  if (deliveredWaiting.length) {
+    items.push({ kind: "header", id: "hdr-sent", title: "Delivered" });
+    deliveredWaiting.forEach((c) =>
+      items.push({ kind: "capsule", id: c.id, capsule: c })
+    );
   }
   if (opened.length) {
     items.push({ kind: "header", id: "hdr-opened", title: "Opened" });
@@ -60,8 +94,9 @@ export default function VaultScreen() {
   );
 
   const items = useMemo(
-    () => (capsules ? buildVaultItems(capsules, nowMs) : []),
-    [capsules, nowMs]
+    () =>
+      capsules ? buildVaultItems(capsules, nowMs, user?.id, user?.email) : [],
+    [capsules, nowMs, user?.id, user?.email]
   );
 
   const overdueCount = useMemo(
@@ -83,6 +118,8 @@ export default function VaultScreen() {
       <CapsuleCard
         capsule={item.capsule}
         nowMs={nowMs}
+        viewerUserId={user?.id}
+        viewerEmail={user?.email}
         onPress={() => router.push(`/capsule/${item.capsule.id}`)}
       />
     );

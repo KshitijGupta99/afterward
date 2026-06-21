@@ -44,7 +44,12 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
     const appUrl = Deno.env.get("APP_URL") ?? "afterward://capsule";
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") ?? "Afterward <onboarding@resend.dev>";
+    const fromEmail =
+      Deno.env.get("RESEND_FROM_EMAIL") ?? "Afterward <hello@thekshitij.com>";
+
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY is not set in Edge Function secrets");
+    }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const resend = new Resend(resendApiKey);
@@ -81,12 +86,21 @@ serve(async (req) => {
               { month: "long", day: "numeric", year: "numeric" }
             );
 
-        await resend.emails.send({
+        const emailResult = await resend.emails.send({
           from: fromEmail,
           to: recipientEmail,
           subject: "Something has been waiting for you.",
           html: buildEmailHtml(openUrl, deliveryLabel, capsule.is_self),
         });
+
+        if (emailResult.error) {
+          throw new Error(
+            emailResult.error.message ??
+              JSON.stringify(emailResult.error)
+          );
+        }
+
+        const emailId = emailResult.data?.id ?? null;
 
         const { data: recipientProfile } = await supabase
           .from("profiles")
@@ -119,6 +133,7 @@ serve(async (req) => {
           id: capsule.id,
           status: "delivered",
           recipient: recipientEmail,
+          emailId,
         });
       } catch (err) {
         await supabase
@@ -139,6 +154,7 @@ serve(async (req) => {
         processed: results.length,
         results,
         debug: {
+          fromEmail,
           lockedTotal: locked.length,
           dueCount: capsules.length,
           now: new Date(nowMs).toISOString(),

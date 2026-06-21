@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchUserCapsules, fetchCapsule, createCapsule } from "@/services/capsules";
+import { fetchUserCapsules, fetchCapsule, createCapsule, markCapsuleOpened } from "@/services/capsules";
 import { sortCapsulesByDelivery } from "@/utils/dates";
 
 export function useCapsules(userId: string | undefined, userEmail?: string | null) {
@@ -17,6 +17,18 @@ export function useCapsule(id: string | undefined) {
     queryKey: ["capsule", id],
     queryFn: () => fetchCapsule(id!),
     enabled: !!id,
+  });
+}
+
+export function useMarkCapsuleOpened() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: markCapsuleOpened,
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["capsules"] });
+      queryClient.invalidateQueries({ queryKey: ["capsule", id] });
+    },
   });
 }
 
