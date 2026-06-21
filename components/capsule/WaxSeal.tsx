@@ -51,6 +51,15 @@ export function WaxSeal({
         -1,
         false
       );
+    } else if (!reduceMotion && state === "overdue") {
+      breath.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      );
     } else {
       breath.value = 0;
     }
@@ -101,7 +110,11 @@ export function WaxSeal({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: isOpen ? COLORS.amber : isOverdue ? COLORS.dusk : COLORS.dusk,
+            backgroundColor: isOpen
+              ? COLORS.amber
+              : isOverdue
+                ? "rgba(201, 138, 75, 0.92)"
+                : COLORS.dusk,
             alignItems: "center",
             justifyContent: "center",
             borderWidth: isOpen || isOverdue ? 1 : 2,

@@ -145,8 +145,8 @@ export default function NewCapsuleScreen() {
 
     if (!isDeliveryInFuture(data.deliveryAt)) {
       Alert.alert(
-        "Choose a future time",
-        "Delivery must be after the current date and time."
+        "Choose a later time",
+        "That delivery time has already passed. Pick a time at least a minute from now."
       );
       return;
     }

@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { View, Text, Pressable, Platform, NativeModules, Alert } from "react-native";
-import { formatDisplayDateTime, toISOString, isDeliveryInFuture } from "@/utils/dates";
+import {
+  formatDisplayDateTime,
+  toISOString,
+  isDeliveryInFuture,
+  bumpToNextValidDelivery,
+  isSameLocalDay,
+} from "@/utils/dates";
 import { cn } from "@/utils/cn";
 
 type DateTimePickerComponent = typeof import("@react-native-community/datetimepicker").default;
@@ -38,10 +44,12 @@ function loadDateTimePicker(): DateTimePickerComponent | null {
   }
 }
 
-function showPastTimeAlert(): void {
+function showPastTimeAlert(isToday: boolean): void {
   Alert.alert(
-    "Choose a future time",
-    "Delivery must be after the current date and time."
+    "Choose a later time",
+    isToday
+      ? "That time has already passed today. Pick a later time — use 24-hour format (e.g. 18:37 for 6:37 pm)."
+      : "Delivery must be after the current date and time."
   );
 }
 
@@ -71,7 +79,7 @@ export function DeliveryDateTimeField({
 
   const finishSelection = (date: Date) => {
     if (!isDeliveryInFuture(date)) {
-      showPastTimeAlert();
+      showPastTimeAlert(isSameLocalDay(date, new Date()));
       return;
     }
     onChange(toISOString(date));
@@ -95,7 +103,7 @@ export function DeliveryDateTimeField({
     if (androidStep === "date") {
       const next = new Date(pendingDate);
       next.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
-      setPendingDate(next);
+      setPendingDate(bumpToNextValidDelivery(next));
       setAndroidStep("time");
       return;
     }
@@ -160,6 +168,7 @@ export function DeliveryDateTimeField({
           value={pendingDate}
           mode="time"
           display="default"
+          is24Hour
           onChange={handleAndroidChange}
         />
       ) : null}

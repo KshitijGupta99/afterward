@@ -19,10 +19,30 @@ export function parseDeliveryInput(value: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1, 12, 0, 0);
 }
 
-export function isDeliveryInFuture(isoOrDate: string | Date): boolean {
+/** Minimum time from now before a delivery can be scheduled. */
+export const MIN_DELIVERY_LEAD_MS = 30_000;
+
+export function isDeliveryInFuture(
+  isoOrDate: string | Date,
+  nowMs: number = Date.now()
+): boolean {
   const delivery =
     isoOrDate instanceof Date ? isoOrDate : parseDeliveryInput(isoOrDate);
-  return delivery.getTime() > Date.now();
+  return delivery.getTime() >= nowMs + MIN_DELIVERY_LEAD_MS;
+}
+
+export function isSameLocalDay(a: Date, b: Date): boolean {
+  return toLocalDateString(a) === toLocalDateString(b);
+}
+
+/** If date is today but time already passed, bump to now + lead + 1 minute. */
+export function bumpToNextValidDelivery(date: Date, nowMs = Date.now()): Date {
+  const bumped = new Date(date);
+  const floor = new Date(nowMs + MIN_DELIVERY_LEAD_MS + 60_000);
+  if (isSameLocalDay(bumped, new Date(nowMs)) && bumped < floor) {
+    return floor;
+  }
+  return bumped;
 }
 
 export function formatDisplayDate(dateStr: string): string {
@@ -111,22 +131,43 @@ export function isToday(dateStr: string): boolean {
   return toLocalDateString(parseDeliveryInput(dateStr)) === toLocalDateString(new Date());
 }
 
+function endOfLocalDay(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1, 23, 59, 59, 999).getTime();
+}
+
+/** When a capsule becomes due (exact time, or end of date-only day). */
+export function getCapsuleDueTimestamp(capsule: {
+  delivery_at?: string | null;
+  delivery_date: string;
+}): number {
+  if (capsule.delivery_at) {
+    return new Date(capsule.delivery_at).getTime();
+  }
+  return endOfLocalDay(capsule.delivery_date);
+}
+
 export function getCapsuleDeliveryTimestamp(capsule: {
   delivery_at?: string | null;
   delivery_date: string;
 }): number {
-  return capsule.delivery_at
-    ? new Date(capsule.delivery_at).getTime()
-    : parseDeliveryInput(capsule.delivery_date).getTime();
+  return getCapsuleDueTimestamp(capsule);
 }
 
-export function isCapsuleOverdue(capsule: {
-  status: string;
-  delivery_at?: string | null;
-  delivery_date: string;
-}): boolean {
+export function isCapsuleOverdue(
+  capsule: {
+    status: string;
+    delivery_at?: string | null;
+    delivery_date: string;
+  },
+  nowMs: number = Date.now()
+): boolean {
   if (capsule.status !== "locked") return false;
-  return getCapsuleDeliveryTimestamp(capsule) <= Date.now();
+  return getCapsuleDueTimestamp(capsule) <= nowMs;
+}
+
+export function isCapsuleFailed(capsule: { status: string }): boolean {
+  return capsule.status === "failed";
 }
 
 export function sortCapsulesByDelivery<
@@ -138,8 +179,8 @@ export function sortCapsulesByDelivery<
     if (aDelivered && !bDelivered) return 1;
     if (!aDelivered && bDelivered) return -1;
 
-    const aOverdue = isCapsuleOverdue(a);
-    const bOverdue = isCapsuleOverdue(b);
+    const aOverdue = isCapsuleOverdue(a, Date.now());
+    const bOverdue = isCapsuleOverdue(b, Date.now());
     if (aOverdue && !bOverdue) return -1;
     if (!aOverdue && bOverdue) return 1;
 

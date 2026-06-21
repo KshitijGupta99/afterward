@@ -6,7 +6,7 @@ import { X, Share2 } from "lucide-react-native";
 import { Screen, BodyText } from "@/components/layout/Screen";
 import { WaxSeal } from "@/components/capsule/WaxSeal";
 import { useCapsule } from "@/hooks/useCapsules";
-import { formatCapsuleDelivery, formatDisplayDateTime, formatMonthYear } from "@/utils/dates";
+import { formatCapsuleDelivery, formatDisplayDateTime, formatMonthYear, isCapsuleOverdue, isCapsuleFailed } from "@/utils/dates";
 import { COLORS } from "@/constants";
 
 export default function CapsuleRevealScreen() {
@@ -25,13 +25,34 @@ export default function CapsuleRevealScreen() {
   }
 
   if (capsule.status !== "delivered") {
+    const deliveryLabel = formatCapsuleDelivery(
+      capsule.delivery_at,
+      capsule.delivery_date
+    );
+    const isFailed = isCapsuleFailed(capsule);
+    const isOverdue = isCapsuleOverdue(capsule);
+
     return (
       <Screen>
         <SafeAreaView className="flex-1 justify-center items-center px-8 gap-4">
-          <WaxSeal state="locked" size={72} breathing />
+          <WaxSeal
+            state={isFailed || isOverdue ? "overdue" : "locked"}
+            size={72}
+            breathing={!isOverdue && !isFailed}
+            label={
+              isFailed
+                ? `Could not deliver · ${deliveryLabel}`
+                : isOverdue
+                  ? `Due since ${deliveryLabel}`
+                  : `Sealed until ${deliveryLabel}`
+            }
+          />
           <BodyText muted className="text-center">
-            This capsule is still sealed until{" "}
-            {formatCapsuleDelivery(capsule.delivery_at, capsule.delivery_date)}.
+            {isFailed
+              ? "We could not deliver this capsule. The recipient email may be invalid."
+              : isOverdue
+                ? "The delivery time has passed. It will be sent to the recipient shortly."
+                : `This capsule is still sealed until ${deliveryLabel}.`}
           </BodyText>
           <Pressable onPress={() => router.back()}>
             <BodyText className="text-dusk">Go back</BodyText>
