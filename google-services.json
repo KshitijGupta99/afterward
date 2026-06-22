@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "116582984759",
+    "project_id": "afterwards-24542",
+    "storage_bucket": "afterwards-24542.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:116582984759:android:d620c0c1848311bbb4e3b2",
+        "android_client_info": {
+          "package_name": "com.afterward.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFGuDr1SuUSTWP0-spFuUg3MmdagH7a2k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

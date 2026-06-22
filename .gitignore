@@ -38,6 +38,10 @@ cmnds.txt
 # typescript
 *.tsbuildinfo
 
+# Firebase admin keys (never commit)
+firebase-adminsdk*.json
+*-firebase-adminsdk*.json
+
 # generated native folders
 /ios
 /android

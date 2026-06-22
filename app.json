@@ -30,6 +30,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "package": "com.afterward.app",
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED"
@@ -82,14 +83,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
     }
   }
 }
