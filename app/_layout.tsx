@@ -18,6 +18,8 @@ import { DeliveryModal } from "@/components/capsule/DeliveryModal";
 import { useAuthStore, useNotificationStore } from "@/hooks/useAuthStore";
 import { addNotificationListeners } from "@/notifications";
 import { COLORS } from "@/constants";
+import { isSupabaseConfigured } from "@/utils/config";
+import { ConfigErrorScreen } from "@/components/layout/ConfigError";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -88,6 +90,8 @@ export default function RootLayout() {
     DMSans_500Medium,
   });
 
+  const configured = isSupabaseConfigured();
+
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
@@ -95,6 +99,16 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
+
+  if (!configured) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <ConfigErrorScreen />
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
