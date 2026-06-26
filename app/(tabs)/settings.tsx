@@ -1,17 +1,30 @@
-import { useState } from "react";
-import { View, ScrollView, Alert, Switch, Text } from "react-native";
+import { useState, useEffect } from "react";
+import { View, ScrollView, Alert, Switch, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
-import { Screen, Heading, BodyText, Divider } from "@/components/layout/Screen";
-import { Input } from "@/components/ui/Input";
+import {
+  Bell,
+  Download,
+  LogOut,
+  Trash2,
+  Cake,
+  Shield,
+  ChevronLeft,
+} from "lucide-react-native";
+import { Screen, BodyText, Divider } from "@/components/layout/Screen";
 import { Button } from "@/components/ui/Button";
+import { BirthdateField } from "@/components/forms/DatePickerField";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { isValidBirthdate } from "@/utils/dates";
 import { useAuth } from "@/hooks/useAuth";
 import { updateProfile, exportUserData } from "@/services/capsules";
 import { setBirthdate, getBirthdate } from "@/storage/mmkv";
 import { supabase } from "@/supabase/client";
 import { registerForPushNotifications } from "@/notifications";
+import { getInitials } from "@/utils/user";
+import { COLORS } from "@/constants";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -23,9 +36,21 @@ export default function SettingsScreen() {
     profile?.notifications_enabled ?? false
   );
   const [saving, setSaving] = useState(false);
+  const [birthdateError, setBirthdateError] = useState<string | undefined>();
+
+  useEffect(() => {
+    const stored = profile?.birthdate ?? getBirthdate();
+    if (stored) setBirthdateLocal(stored);
+  }, [profile?.birthdate]);
 
   const saveBirthdate = async () => {
     if (!user || !birthdate) return;
+    if (!isValidBirthdate(birthdate)) {
+      setBirthdateError("Pick a valid date in the past");
+      Alert.alert("Invalid birthdate", "Please pick your birthdate using the calendar.");
+      return;
+    }
+    setBirthdateError(undefined);
     setSaving(true);
     setBirthdate(birthdate);
     await updateProfile(user.id, { birthdate });
@@ -96,69 +121,140 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <SafeAreaView className="flex-1" edges={["top"]}>
-        <ScrollView contentContainerStyle={{ padding: 24, gap: 32 }}>
-          <Heading>Settings</Heading>
+        <View className="flex-row items-center px-4 py-3 border-b border-lavender bg-surface">
+          <Pressable
+            onPress={() => router.back()}
+            className="p-2"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <ChevronLeft color={COLORS.ink} size={24} />
+          </Pressable>
+          <Text className="flex-1 font-display text-lg text-slate text-center mr-10">
+            Settings
+          </Text>
+        </View>
 
-          <View className="gap-4">
-            <BodyText className="font-body text-sm text-ink/70 uppercase tracking-wider">
-              Profile
-            </BodyText>
-            <Input
-              label="Email"
-              value={user?.email ?? ""}
-              editable={false}
-            />
-            <Input
-              label="Birthdate (YYYY-MM-DD)"
-              value={birthdate}
-              onChangeText={setBirthdateLocal}
-              placeholder="1990-03-15"
-            />
-            <Button onPress={saveBirthdate} loading={saving} variant="secondary">
-              Save birthdate
-            </Button>
+        <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
+          <View className="items-center mb-8">
+            <View className="w-16 h-16 rounded-full bg-lavender items-center justify-center mb-3">
+              <Text className="font-body-medium text-lg text-ink">
+                {getInitials(user?.email)}
+              </Text>
+            </View>
+            <Text className="font-display text-xl text-slate">Your account</Text>
+            <Text className="font-body text-sm text-muted mt-1">{user?.email}</Text>
           </View>
 
-          <Divider />
-
-          <View className="gap-4">
-            <BodyText className="font-body text-sm text-ink/70 uppercase tracking-wider">
-              Notifications
+          <SettingsCard icon={Cake} title="Birthdate">
+            <BodyText muted className="text-sm mb-3 leading-5">
+              Used for the birthday delivery preset when creating capsules.
             </BodyText>
+            <BirthdateField
+              value={birthdate}
+              onChange={(d) => {
+                setBirthdateLocal(d);
+                setBirthdateError(undefined);
+              }}
+              error={birthdateError}
+            />
+            <Button
+              onPress={saveBirthdate}
+              loading={saving}
+              variant="secondary"
+              className="mt-3"
+            >
+              Save birthdate
+            </Button>
+          </SettingsCard>
+
+          <SettingsCard icon={Bell} title="Notifications">
             <View className="flex-row items-center justify-between">
-              <Text className="font-body text-base text-ink">Delivery alerts</Text>
+              <View className="flex-1 pr-4">
+                <Text className="font-body text-base text-ink">Delivery alerts</Text>
+                <BodyText muted className="text-sm mt-1">
+                  Quiet alerts when a capsule arrives.
+                </BodyText>
+              </View>
               <Switch
                 value={notifications}
                 onValueChange={toggleNotifications}
-                trackColor={{ false: "#E8E3DA", true: "#3D4F5C" }}
-                thumbColor="#FAF7F2"
+                trackColor={{ false: COLORS.lavenderDeep, true: COLORS.gradientStart }}
+                thumbColor="#FFFFFF"
                 accessibilityLabel="Delivery notifications"
               />
             </View>
-            <BodyText muted className="text-sm">
-              Quiet alerts when a capsule arrives. No sound or vibration.
+          </SettingsCard>
+
+          <SettingsCard icon={Shield} title="Privacy">
+            <BodyText muted className="text-sm leading-5">
+              Your messages are encrypted and stored securely. Only you can read locked
+              capsules until they are delivered.
             </BodyText>
-          </View>
+          </SettingsCard>
 
-          <Divider />
+          <Divider className="my-6" />
 
+          <SectionLabel className="mb-3">Data & account</SectionLabel>
           <View className="gap-3">
-            <Button variant="secondary" onPress={handleExport}>
-              Export my data
-            </Button>
-            <Button variant="ghost" onPress={handleSignOut}>
-              Sign out
-            </Button>
-            <Button variant="ghost" onPress={handleDeleteAccount}>
-              <Text className="font-body text-amber">Delete account</Text>
-            </Button>
+            <ActionRow icon={Download} label="Export my data" onPress={handleExport} />
+            <ActionRow icon={LogOut} label="Sign out" onPress={handleSignOut} />
+            <ActionRow
+              icon={Trash2}
+              label="Delete account"
+              onPress={handleDeleteAccount}
+              destructive
+            />
           </View>
-
-          <BodyText muted className="text-xs text-center">
-            Your messages are stored securely. Only you can read locked capsules.
-          </BodyText>
         </ScrollView>
       </SafeAreaView>
     </Screen>
+  );
+}
+
+function SettingsCard({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof Bell;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View className="bg-surface rounded-card p-5 mb-4 border border-lavender/50 shadow-soft">
+      <View className="flex-row items-center gap-2 mb-3">
+        <Icon color={COLORS.ink} size={18} strokeWidth={1.5} />
+        <Text className="font-display text-lg text-slate">{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function ActionRow({
+  icon: Icon,
+  label,
+  onPress,
+  destructive,
+}: {
+  icon: typeof LogOut;
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center gap-3 bg-surface rounded-soft px-4 py-4 border border-lavender"
+      accessibilityRole="button"
+    >
+      <Icon color={destructive ? COLORS.warning : COLORS.ink} size={18} />
+      <Text
+        className={`font-body text-base flex-1 ${destructive ? "text-warning" : "text-ink"}`}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }

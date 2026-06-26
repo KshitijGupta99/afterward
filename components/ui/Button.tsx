@@ -1,9 +1,10 @@
 import { Pressable, Text, ActivityIndicator, type PressableProps } from "react-native";
 import { cn } from "@/utils/cn";
+import { COLORS } from "@/constants";
 
 interface ButtonProps extends PressableProps {
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "outline";
   loading?: boolean;
   className?: string;
 }
@@ -23,9 +24,10 @@ export function Button({
       disabled={isDisabled}
       accessibilityRole="button"
       className={cn(
-        "rounded-soft px-6 py-3.5 items-center justify-center min-h-[48px]",
-        variant === "primary" && "bg-dusk",
-        variant === "secondary" && "bg-mist",
+        "rounded-pill px-6 py-3.5 items-center justify-center min-h-[48px]",
+        variant === "primary" && "bg-slate",
+        variant === "secondary" && "bg-lavender",
+        variant === "outline" && "border border-lavender-deep bg-surface",
         variant === "ghost" && "bg-transparent",
         isDisabled && "opacity-50",
         className
@@ -33,14 +35,15 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" ? "#FAF7F2" : "#3D4F5C"} />
+        <ActivityIndicator color={variant === "primary" ? "#FFFFFF" : COLORS.ink} />
       ) : (
         <Text
           className={cn(
-            "font-body text-base",
-            variant === "primary" && "text-paper",
+            "font-body-medium text-base",
+            variant === "primary" && "text-white",
             variant === "secondary" && "text-ink",
-            variant === "ghost" && "text-dusk"
+            variant === "outline" && "text-ink",
+            variant === "ghost" && "text-ink"
           )}
         >
           {children}

@@ -22,10 +22,7 @@ interface HeadingProps extends TextProps {
 export function Heading({ children, className, ...props }: HeadingProps) {
   return (
     <Text
-      className={cn(
-        "font-display text-ink text-2xl tracking-wide",
-        className
-      )}
+      className={cn("font-display text-slate text-2xl", className)}
       accessibilityRole="header"
       {...props}
     >
@@ -45,7 +42,7 @@ export function BodyText({ children, className, muted, ...props }: BodyTextProps
     <Text
       className={cn(
         "font-body text-base leading-6",
-        muted ? "text-ink/60" : "text-ink",
+        muted ? "text-muted" : "text-ink",
         className
       )}
       {...props}
@@ -56,5 +53,5 @@ export function BodyText({ children, className, muted, ...props }: BodyTextProps
 }
 
 export function Divider({ className }: { className?: string }) {
-  return <View className={cn("h-px bg-mist", className)} />;
+  return <View className={cn("h-px bg-lavender", className)} />;
 }

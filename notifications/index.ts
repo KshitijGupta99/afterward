@@ -47,7 +47,7 @@ export async function registerForPushNotifications(
       return {
         token: null,
         error:
-          "Push notifications need Firebase setup. Run eas init and add google-services.json, or enable notifications later in Settings.",
+          "EAS project ID missing from this build. Run: npx expo prebuild --clean && npx expo run:android",
       };
     }
 

@@ -1,15 +1,5 @@
-/*
- * Afterward Design Tokens — "Held Light"
- *
- * Colors: paper (bg), ink (text), dusk (primary accent), mist (borders/cards),
- *         amber (unlock/delivery only), moss (success/confirmation only)
- * Spacing: xs–3xl scale for consistent breathing room
- * Typography: Fraunces display (letter-like headers), Inter body (warm UI text)
- * Shadows: soft layered shadows — cards rest quietly, seal has tactile emboss
- * Motion: slow breathing on locked seals, gentle fade/scale on reveal
- * Signature: WaxSeal component — circular, embossed, locked vs delivered states
- */
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Afterward — lavender legacy theme (Stitch) */

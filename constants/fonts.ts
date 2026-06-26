@@ -1,14 +1,6 @@
-import { Platform } from "react-native";
-
 export const fontFamilies = {
-  display: Platform.select({
-    ios: "Georgia",
-    android: "serif",
-    default: "serif",
-  }) as string,
-  body: Platform.select({
-    ios: "System",
-    android: "sans-serif",
-    default: "sans-serif",
-  }) as string,
-};
+  display: "PlayfairDisplay_600SemiBold",
+  displayBold: "PlayfairDisplay_700Bold",
+  body: "DMSans_400Regular",
+  bodyMedium: "DMSans_500Medium",
+} as const;

@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FAF7F2"
+      "backgroundColor": "#F7F8FC"
     },
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FAF7F2",
+        "backgroundColor": "#F7F8FC",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -69,7 +69,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#3D4F5C",
+          "color": "#5D5D81",
           "sounds": []
         }
       ],
@@ -83,6 +83,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6aa71d4e-18ab-4cae-9a1d-82681ccbf4de"
+      }
     }
   }
 }

@@ -15,32 +15,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
-import { Screen, Heading, BodyText } from "@/components/layout/Screen";
+import { LinearGradient } from "expo-linear-gradient";
+import { Lock, Plus } from "lucide-react-native";
+import { Screen, Heading } from "@/components/layout/Screen";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { Input, TextArea } from "@/components/ui/Input";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { DeliveryDateTimeField } from "@/components/forms/DatePickerField";
-import { WaxSeal } from "@/components/capsule/WaxSeal";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateCapsule } from "@/hooks/useCapsules";
 import { capsuleSchema, type CapsuleFormData } from "@/utils/validation";
 import { pickImage } from "@/utils/image";
 import {
-  formatDisplayDateTime,
   addYears,
   getNextBirthday,
   withDefaultMorningTime,
   isDeliveryInFuture,
+  isValidBirthdate,
+  formatDisplayDate,
 } from "@/utils/dates";
-import { DATE_PRESETS } from "@/constants";
+import { DATE_PRESETS, COLORS, SHADOW_STYLES } from "@/constants";
 import { saveDraft, loadDraft, clearDraft, getBirthdate } from "@/storage/mmkv";
 import { draftFromForm } from "@/services/capsules";
+import { cn } from "@/utils/cn";
 
 export default function NewCapsuleScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const createMutation = useCreateCapsule();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [sealing, setSealing] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [locking, setLocking] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>("oneYear");
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -61,20 +66,25 @@ export default function NewCapsuleScreen() {
     };
   }, []);
 
-  const { control, handleSubmit, watch, setValue, reset, formState: { errors } } =
-    useForm<CapsuleFormData>({
-      resolver: zodResolver(capsuleSchema),
-      defaultValues: {
-        title: "",
-        body: "",
-        isSelf: true,
-        recipientEmail: "",
-        deliveryAt: withDefaultMorningTime(addYears(new Date(), 1)),
-      },
-    });
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<CapsuleFormData>({
+    resolver: zodResolver(capsuleSchema),
+    defaultValues: {
+      title: "",
+      body: "",
+      isSelf: true,
+      recipientEmail: "",
+      deliveryAt: withDefaultMorningTime(addYears(new Date(), 1)),
+    },
+  });
 
   const isSelf = watch("isSelf");
-  const deliveryAt = watch("deliveryAt");
 
   useEffect(() => {
     const draft = loadDraft();
@@ -106,6 +116,8 @@ export default function NewCapsuleScreen() {
     return () => clearInterval(interval);
   }, [persistDraft]);
 
+  const storedBirthdate = profile?.birthdate ?? getBirthdate() ?? "";
+
   const applyPreset = (key: string) => {
     setSelectedPreset(key);
     const today = new Date();
@@ -117,13 +129,13 @@ export default function NewCapsuleScreen() {
     } else if (key === "tenYears") {
       setValue("deliveryAt", withDefaultMorningTime(addYears(today, 10)));
     } else if (key === "birthday") {
-      const birthdate = profile?.birthdate ?? getBirthdate();
-      if (birthdate) {
+      const birthdate = storedBirthdate;
+      if (birthdate && isValidBirthdate(birthdate)) {
         setValue("deliveryAt", getNextBirthday(birthdate));
       } else {
         Alert.alert(
           "Birthdate needed",
-          "Add your birthdate in Settings to use this preset."
+          "Add your birthdate in Settings to use the birthday preset."
         );
       }
     }
@@ -151,7 +163,7 @@ export default function NewCapsuleScreen() {
       return;
     }
 
-    setSealing(true);
+    setLocking(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     const result = await createMutation.mutateAsync({
@@ -166,8 +178,8 @@ export default function NewCapsuleScreen() {
     });
 
     if (!result) {
-      setSealing(false);
-      Alert.alert("Could not seal capsule", "Please check your connection and try again.");
+      setLocking(false);
+      Alert.alert("Could not lock capsule", "Please check your connection and try again.");
       return;
     }
 
@@ -180,15 +192,23 @@ export default function NewCapsuleScreen() {
       deliveryAt: withDefaultMorningTime(addYears(new Date(), 1)),
     });
     setPhotoUri(null);
-    setSelectedPreset(null);
-    await new Promise((r) => setTimeout(r, 800));
-    setSealing(false);
+    setSelectedPreset("oneYear");
+    await new Promise((r) => setTimeout(r, 600));
+    setLocking(false);
     router.replace("/(tabs)/vault");
   };
+
+  const presetYear = (years: number) => String(new Date().getFullYear() + years);
 
   return (
     <Screen>
       <SafeAreaView className="flex-1" edges={["top"]}>
+        <AppHeader
+          title="New Capsule"
+          showBack
+          onBack={() => router.push("/(tabs)/vault")}
+        />
+
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
@@ -204,163 +224,216 @@ export default function NewCapsuleScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-            <Heading className="mb-6">New capsule</Heading>
+            <Heading className="text-2xl mb-5">What would you like to say?</Heading>
 
-            <View className="gap-5">
-              <Controller
-                control={control}
-                name="title"
-                render={({ field: { onChange, value } }) => (
-                  <Input
-                    label="Title (optional)"
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="A quiet note"
-                    onFocus={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-                  />
-                )}
-              />
-
-              <Controller
-                control={control}
-                name="body"
-                render={({ field: { onChange, value } }) => (
-                  <TextArea
-                    label="Message"
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Write something for a future day..."
-                    error={errors.body?.message}
-                    onFocus={() => scrollRef.current?.scrollTo({ y: 80, animated: true })}
-                  />
-                )}
-              />
-
-              <View className="gap-2">
-                <Text className="font-body text-sm text-ink/70">Photo (optional)</Text>
-                {photoUri ? (
-                  <View className="gap-3">
-                    <Image
-                      source={{ uri: photoUri }}
-                      className="w-full h-40 rounded-soft"
-                      resizeMode="cover"
-                    />
-                    <View className="flex-row gap-3">
-                      <Pressable
-                        onPress={handlePickImage}
-                        className="flex-1 py-3 rounded-soft border border-mist bg-mist/30 items-center"
-                        accessibilityRole="button"
-                        accessibilityLabel="Change photo"
-                      >
-                        <Text className="font-body text-sm text-dusk">Change photo</Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={handleRemovePhoto}
-                        className="flex-1 py-3 rounded-soft border border-mist bg-mist/30 items-center"
-                        accessibilityRole="button"
-                        accessibilityLabel="Remove photo"
-                      >
-                        <Text className="font-body text-sm text-ink/70">Remove photo</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ) : (
-                  <Pressable
-                    onPress={handlePickImage}
-                    className="border border-dashed border-mist rounded-soft p-4 items-center justify-center min-h-[100px] bg-mist/30"
-                    accessibilityRole="button"
-                    accessibilityLabel="Add photo"
-                  >
-                    <BodyText muted>Tap to add a photo</BodyText>
-                  </Pressable>
-                )}
-              </View>
-
-              <View className="gap-3">
-                <Text className="font-body text-sm text-ink/70">Recipient</Text>
-                <View className="flex-row gap-3">
-                  <RecipientToggle
-                    label="To myself"
-                    selected={isSelf}
-                    onPress={() => setValue("isSelf", true)}
-                  />
-                  <RecipientToggle
-                    label="To someone else"
-                    selected={!isSelf}
-                    onPress={() => setValue("isSelf", false)}
-                  />
-                </View>
-              </View>
-
-              {!isSelf && (
-                <Controller
-                  control={control}
-                  name="recipientEmail"
-                  render={({ field: { onChange, value } }) => (
-                    <Input
-                      label="Their email"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      disableAutofill
-                      error={errors.recipientEmail?.message}
-                      onFocus={() =>
-                        scrollRef.current?.scrollTo({ y: 320, animated: true })
-                      }
-                    />
-                  )}
+            <Controller
+              control={control}
+              name="body"
+              render={({ field: { onChange, value } }) => (
+                <TextArea
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Write a message to the future self or a loved one..."
+                  hint="Securely encrypted"
+                  card
+                  error={errors.body?.message}
+                  onFocus={() => scrollRef.current?.scrollTo({ y: 60, animated: true })}
                 />
               )}
+            />
 
-              <View className="gap-3">
-                <Text className="font-body text-sm text-ink/70">Delivery date and time</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {Object.entries(DATE_PRESETS).map(([key, preset]) => (
-                    <PresetChip
-                      key={key}
-                      label={preset.label}
-                      selected={selectedPreset === key}
-                      onPress={() => applyPreset(key)}
-                    />
-                  ))}
-                  <PresetChip
-                    label="Next birthday"
-                    selected={selectedPreset === "birthday"}
-                    onPress={() => applyPreset("birthday")}
+            <View className="mt-6 mb-2">
+              <SectionLabel>Add a memory (optional)</SectionLabel>
+            </View>
+            <View className="flex-row gap-3 mb-6">
+              {!photoUri ? (
+                <Pressable
+                  onPress={handlePickImage}
+                  className="flex-1 aspect-square border-2 border-dashed border-lavender-deep rounded-card bg-lavender/50 items-center justify-center"
+                  accessibilityRole="button"
+                  accessibilityLabel="Add photo or video"
+                >
+                  <View className="w-10 h-10 rounded-full border border-accent items-center justify-center mb-2">
+                    <Plus color={COLORS.ink} size={20} />
+                  </View>
+                  <Text className="font-body text-xs text-muted">Photo / Video</Text>
+                </Pressable>
+              ) : (
+                <View className="flex-1 aspect-square rounded-card overflow-hidden relative">
+                  <Image
+                    source={{ uri: photoUri }}
+                    className="w-full h-full"
+                    resizeMode="cover"
                   />
+                  <Pressable
+                    onPress={handleRemovePhoto}
+                    className="absolute top-2 right-2 bg-surface/90 rounded-pill px-3 py-1"
+                  >
+                    <Text className="font-body text-xs text-ink">Remove</Text>
+                  </Pressable>
                 </View>
-                <Controller
-                  control={control}
-                  name="deliveryAt"
-                  render={({ field: { onChange, value } }) => (
-                    <DeliveryDateTimeField
-                      value={value}
-                      onChange={(iso) => {
-                        setSelectedPreset("custom");
-                        onChange(iso);
-                      }}
-                      error={errors.deliveryAt?.message}
-                    />
-                  )}
-                />
-              </View>
+              )}
+              {photoUri ? (
+                <Pressable
+                  onPress={handlePickImage}
+                  className="flex-1 aspect-square border-2 border-dashed border-lavender-deep rounded-card bg-lavender/30 items-center justify-center"
+                >
+                  <Text className="font-body text-xs text-muted">Change</Text>
+                </Pressable>
+              ) : null}
+            </View>
 
-              <View className="items-center pt-6 pb-4">
-                <WaxSeal
-                  state={sealing ? "closing" : "locked"}
-                  size={88}
-                  label={
-                    sealing
-                      ? "Sealing..."
-                      : `Seal until ${formatDisplayDateTime(deliveryAt)}`
-                  }
-                  onPress={handleSubmit(onSubmit)}
-                  disabled={createMutation.isPending || sealing}
-                  accessibilityLabel={`Seal until ${formatDisplayDateTime(deliveryAt)}`}
+            <View className="bg-lavender rounded-card p-4 mb-6">
+              <SectionLabel className="mb-3">Recipient</SectionLabel>
+              <View className="flex-row bg-lavender-deep/40 rounded-pill p-1">
+                <RecipientPill
+                  label="Send to myself"
+                  selected={isSelf}
+                  onPress={() => setValue("isSelf", true)}
+                />
+                <RecipientPill
+                  label="Send to someone"
+                  selected={!isSelf}
+                  onPress={() => setValue("isSelf", false, { shouldValidate: false })}
                 />
               </View>
+            </View>
+
+            {!isSelf && (
+              <Controller
+                control={control}
+                name="recipientEmail"
+                render={({ field: { onChange, value } }) => (
+                  <Input
+                    label="Their email"
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    disableAutofill
+                    variant="pill"
+                    error={errors.recipientEmail?.message}
+                    className="mb-6"
+                  />
+                )}
+              />
+            )}
+
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  label="Title (optional)"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="A quiet note"
+                  variant="pill"
+                  className="mb-6"
+                />
+              )}
+            />
+
+            <SectionLabel className="mb-1">When should this open?</SectionLabel>
+            <Text className="font-body text-sm text-muted mb-3">
+              Select a delivery milestone
+            </Text>
+
+            <View className="flex-row gap-3 mb-3">
+              {(
+                [
+                  ["oneYear", DATE_PRESETS.oneYear.label, 1],
+                  ["fiveYears", DATE_PRESETS.fiveYears.label, 5],
+                  ["tenYears", DATE_PRESETS.tenYears.label, 10],
+                ] as const
+              ).map(([key, label, years]) => (
+                <MilestoneCard
+                  key={key}
+                  label={label}
+                  year={presetYear(years)}
+                  selected={selectedPreset === key}
+                  onPress={() => applyPreset(key)}
+                />
+              ))}
+            </View>
+
+            <Pressable
+              onPress={() => applyPreset("birthday")}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}
+              className={cn(
+                "border-2 border-dashed rounded-soft px-4 py-3.5 mb-3 min-h-[48px]",
+                selectedPreset === "birthday"
+                  ? "border-accent bg-lavender-deep/40"
+                  : "border-lavender-deep bg-transparent"
+              )}
+              accessibilityRole="button"
+              accessibilityLabel="Next birthday delivery"
+            >
+              <Text className="font-body text-base text-ink">Next birthday</Text>
+              {isValidBirthdate(storedBirthdate) ? (
+                <Text className="font-body text-xs text-muted">
+                  {formatDisplayDate(storedBirthdate)}
+                </Text>
+              ) : null}
+            </Pressable>
+
+            <Controller
+              control={control}
+              name="deliveryAt"
+              render={({ field: { onChange, value } }) => (
+                <DeliveryDateTimeField
+                  label=""
+                  value={value}
+                  onChange={(iso) => {
+                    setSelectedPreset("custom");
+                    onChange(iso);
+                  }}
+                  error={errors.deliveryAt?.message}
+                  variant="dashed"
+                />
+              )}
+            />
+
+            <View className="items-center pt-8 pb-2">
+              <Pressable
+                onPress={handleSubmit(onSubmit)}
+                disabled={createMutation.isPending || locking}
+                accessibilityRole="button"
+                accessibilityLabel="Lock capsule"
+                style={[
+                  { width: "100%", borderRadius: 9999, overflow: "hidden" },
+                  SHADOW_STYLES.card,
+                  (createMutation.isPending || locking) && { opacity: 0.5 },
+                ]}
+              >
+                <LinearGradient
+                  colors={[COLORS.gradientEnd, COLORS.gradientStart]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingVertical: 16,
+                    paddingHorizontal: 24,
+                    minHeight: 56,
+                    gap: 8,
+                  }}
+                >
+                  <Lock color="#FFFFFF" size={18} />
+                  <Text
+                    className="font-display text-white text-lg"
+                    style={{ lineHeight: 22, includeFontPadding: false }}
+                  >
+                    {locking ? "Locking..." : "Lock Capsule"}
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+              <Text className="font-body text-xs text-muted text-center mt-4 px-4 leading-4">
+                Once locked, this capsule cannot be opened or deleted until the unlock
+                date.
+              </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -369,7 +442,7 @@ export default function NewCapsuleScreen() {
   );
 }
 
-function RecipientToggle({
+function RecipientPill({
   label,
   selected,
   onPress,
@@ -381,40 +454,48 @@ function RecipientToggle({
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-1 py-3 px-4 rounded-soft border ${
-        selected ? "bg-dusk border-dusk" : "bg-mist/30 border-mist"
-      }`}
-      accessibilityRole="radio"
+      style={{ flex: 1 }}
+      accessibilityRole="button"
       accessibilityState={{ selected }}
     >
-      <Text
-        className={`font-body text-sm text-center ${
-          selected ? "text-paper" : "text-ink"
-        }`}
+      <View
+        className={cn("py-3 px-2 rounded-pill items-center", selected && "bg-surface")}
+        style={selected ? SHADOW_STYLES.soft : undefined}
       >
-        {label}
-      </Text>
+        <Text
+          className={cn(
+            "font-body-medium text-sm text-center",
+            selected ? "text-ink" : "text-muted"
+          )}
+        >
+          {label}
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
-function PresetChip({
+function MilestoneCard({
   label,
+  year,
   selected,
   onPress,
 }: {
   label: string;
+  year: string;
   selected: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className={`py-2 px-3 rounded-soft border ${
-        selected ? "border-dusk bg-dusk/10" : "border-mist bg-mist/30"
-      }`}
+      className={cn(
+        "flex-1 bg-lavender rounded-soft py-4 items-center border",
+        selected ? "border-accent bg-lavender-deep/50" : "border-transparent"
+      )}
     >
-      <Text className="font-body text-sm text-ink">{label}</Text>
+      <Text className="font-body-medium text-sm text-ink">{label}</Text>
+      <Text className="font-body text-xs text-muted mt-0.5">{year}</Text>
     </Pressable>
   );
 }

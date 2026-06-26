@@ -14,6 +14,7 @@ interface InputProps extends TextInputProps {
   error?: string;
   className?: string;
   disableAutofill?: boolean;
+  variant?: "default" | "pill";
 }
 
 export function Input({
@@ -21,18 +22,20 @@ export function Input({
   error,
   className,
   disableAutofill = true,
+  variant = "default",
   ...props
 }: InputProps) {
   return (
     <View className="gap-1.5">
       {label ? (
-        <Text className="font-body text-sm text-ink/70">{label}</Text>
+        <Text className="font-body text-sm text-muted">{label}</Text>
       ) : null}
       <TextInput
-        placeholderTextColor="rgba(43, 42, 40, 0.35)"
+        placeholderTextColor="rgba(117, 117, 117, 0.6)"
         className={cn(
-          "font-body text-base text-ink bg-mist/50 border border-mist rounded-soft px-4 py-3 min-h-[48px]",
-          error && "border-amber",
+          "font-body text-base text-ink bg-lavender border border-lavender-deep px-4 py-3 min-h-[48px]",
+          variant === "pill" ? "rounded-pill" : "rounded-soft",
+          error && "border-warning",
           className
         )}
         accessibilityLabel={label}
@@ -40,7 +43,7 @@ export function Input({
         {...props}
       />
       {error ? (
-        <Text className="font-body text-sm text-amber">{error}</Text>
+        <Text className="font-body text-sm text-warning">{error}</Text>
       ) : null}
     </View>
   );
@@ -50,33 +53,51 @@ interface TextAreaProps extends TextInputProps {
   label?: string;
   error?: string;
   disableAutofill?: boolean;
+  hint?: string;
+  card?: boolean;
 }
 
 export function TextArea({
   label,
   error,
   disableAutofill = true,
+  hint,
+  card = false,
+  className,
   ...props
 }: TextAreaProps) {
   return (
     <View className="gap-1.5">
       {label ? (
-        <Text className="font-body text-sm text-ink/70">{label}</Text>
+        <Text className="font-body text-sm text-muted">{label}</Text>
       ) : null}
-      <TextInput
-        multiline
-        textAlignVertical="top"
-        placeholderTextColor="rgba(43, 42, 40, 0.35)"
+      <View
         className={cn(
-          "font-body text-base text-ink bg-mist/50 border border-mist rounded-soft px-4 py-3 min-h-[160px]",
-          error && "border-amber"
+          card && "bg-surface rounded-card p-4 border border-lavender shadow-soft"
         )}
-        accessibilityLabel={label}
-        {...(disableAutofill ? noAutofillProps : {})}
-        {...props}
-      />
+      >
+        <TextInput
+          multiline
+          textAlignVertical="top"
+          placeholderTextColor="rgba(117, 117, 117, 0.5)"
+          className={cn(
+            "font-body text-base text-ink min-h-[160px]",
+            !card && "bg-surface border border-lavender rounded-card px-4 py-3 min-h-[160px]",
+            error && "border-warning",
+            className
+          )}
+          accessibilityLabel={label}
+          {...(disableAutofill ? noAutofillProps : {})}
+          {...props}
+        />
+        {hint ? (
+          <Text className="font-body text-xs text-muted/70 text-right mt-2">
+            {hint}
+          </Text>
+        ) : null}
+      </View>
       {error ? (
-        <Text className="font-body text-sm text-amber">{error}</Text>
+        <Text className="font-body text-sm text-warning">{error}</Text>
       ) : null}
     </View>
   );

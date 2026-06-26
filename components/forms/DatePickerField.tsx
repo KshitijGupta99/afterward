@@ -3,10 +3,16 @@ import { View, Text, Pressable, Platform, NativeModules, Alert } from "react-nat
 import {
   formatDisplayDateTime,
   toISOString,
+  toLocalDateString,
   isDeliveryInFuture,
   bumpToNextValidDelivery,
   isSameLocalDay,
+  formatDisplayDate,
+  isValidBirthdate,
+  parseBirthdateToDate,
 } from "@/utils/dates";
+import { Calendar } from "lucide-react-native";
+import { COLORS } from "@/constants";
 import { cn } from "@/utils/cn";
 
 type DateTimePickerComponent = typeof import("@react-native-community/datetimepicker").default;
@@ -18,6 +24,7 @@ interface DeliveryDateTimeFieldProps {
   onChange: (iso: string) => void;
   error?: string;
   minimumDate?: Date;
+  variant?: "default" | "dashed";
 }
 
 type AndroidStep = "date" | "time" | null;
@@ -59,6 +66,7 @@ export function DeliveryDateTimeField({
   onChange,
   error,
   minimumDate = new Date(),
+  variant = "default",
 }: DeliveryDateTimeFieldProps) {
   const DateTimePicker = loadDateTimePicker();
   const selected = value ? parseISO(value) : minimumDate;
@@ -127,14 +135,26 @@ export function DeliveryDateTimeField({
         accessibilityRole="button"
         accessibilityLabel={`Delivery time, ${value ? formatDisplayDateTime(value) : "not set"}`}
         className={cn(
-          "flex-row items-center justify-between bg-mist/50 border border-mist rounded-soft px-4 py-3.5 min-h-[48px]",
-          error && "border-amber"
+          "flex-row items-center justify-center gap-2 rounded-soft px-4 py-3.5 min-h-[48px]",
+          variant === "dashed"
+            ? "border-2 border-dashed border-lavender-deep bg-transparent"
+            : "bg-lavender border border-lavender-deep",
+          error && "border-warning"
         )}
       >
-        <Text className="font-body text-base text-ink flex-1 pr-2">
-          {value ? formatDisplayDateTime(value) : "Select date and time"}
-        </Text>
-        <Text className="font-body text-sm text-dusk">Change</Text>
+        {variant === "dashed" ? (
+          <>
+            <Calendar color={COLORS.ink} size={18} />
+            <Text className="font-body text-base text-ink">Custom Date</Text>
+          </>
+        ) : (
+          <>
+            <Text className="font-body text-base text-ink flex-1 pr-2">
+              {value ? formatDisplayDateTime(value) : "Select date and time"}
+            </Text>
+            <Text className="font-body text-sm text-slate">Change</Text>
+          </>
+        )}
       </Pressable>
 
       {!DateTimePicker ? (
@@ -157,7 +177,7 @@ export function DeliveryDateTimeField({
         <DateTimePicker
           value={pendingDate}
           mode="date"
-          display="default"
+          display="calendar"
           minimumDate={minimumDate}
           onChange={handleAndroidChange}
         />
@@ -174,7 +194,7 @@ export function DeliveryDateTimeField({
       ) : null}
 
       {error ? (
-        <Text className="font-body text-sm text-amber">{error}</Text>
+        <Text className="font-body text-sm text-warning">{error}</Text>
       ) : null}
     </View>
   );
@@ -182,3 +202,115 @@ export function DeliveryDateTimeField({
 
 /** @deprecated Use DeliveryDateTimeField */
 export const DatePickerField = DeliveryDateTimeField;
+
+interface BirthdateFieldProps {
+  value: string;
+  onChange: (yyyyMmDd: string) => void;
+  error?: string;
+}
+
+function defaultBirthdatePickerValue(value: string): Date {
+  if (value && isValidBirthdate(value)) {
+    return parseBirthdateToDate(value);
+  }
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 25);
+  d.setHours(12, 0, 0, 0);
+  return d;
+}
+
+export function BirthdateField({ value, onChange, error }: BirthdateFieldProps) {
+  const DateTimePicker = loadDateTimePicker();
+  const selected = defaultBirthdatePickerValue(value);
+  const maxDate = new Date();
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 120);
+
+  const [showIosPicker, setShowIosPicker] = useState(false);
+  const [showAndroidPicker, setShowAndroidPicker] = useState(false);
+
+  const openPicker = () => {
+    if (!DateTimePicker) return;
+    if (Platform.OS === "android") {
+      setShowAndroidPicker(true);
+    } else {
+      setShowIosPicker(true);
+    }
+  };
+
+  const applyDate = (date: Date) => {
+    onChange(toLocalDateString(date));
+  };
+
+  const handleIosChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (event.type === "dismissed") {
+      setShowIosPicker(false);
+      return;
+    }
+    if (date) {
+      applyDate(date);
+      setShowIosPicker(false);
+    }
+  };
+
+  const handleAndroidChange = (event: DateTimePickerEvent, date?: Date) => {
+    setShowAndroidPicker(false);
+    if (event.type === "dismissed" || !date) return;
+    applyDate(date);
+  };
+
+  const displayValue = value && isValidBirthdate(value) ? formatDisplayDate(value) : null;
+
+  return (
+    <View className="gap-2">
+      <Pressable
+        onPress={openPicker}
+        accessibilityRole="button"
+        accessibilityLabel={`Birthdate, ${displayValue ?? "not set"}`}
+        style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+        className={cn(
+          "bg-lavender border border-lavender-deep rounded-pill px-4 py-3.5 min-h-[48px]",
+          error && "border-warning"
+        )}
+      >
+        <Calendar color={COLORS.ink} size={18} />
+        <Text className="font-body text-base text-ink flex-1">
+          {displayValue ?? "Pick your birthdate"}
+        </Text>
+        <Text className="font-body text-sm text-slate">Change</Text>
+      </Pressable>
+
+      {!DateTimePicker ? (
+        <Text className="font-body text-sm text-warning">
+          Calendar requires a native rebuild. Run: npx expo prebuild --clean && npx expo run:android
+        </Text>
+      ) : null}
+
+      {Platform.OS === "ios" && showIosPicker && DateTimePicker ? (
+        <DateTimePicker
+          value={selected}
+          mode="date"
+          display="spinner"
+          minimumDate={minDate}
+          maximumDate={maxDate}
+          onChange={handleIosChange}
+        />
+      ) : null}
+
+      {Platform.OS === "android" && showAndroidPicker && DateTimePicker ? (
+        <DateTimePicker
+          value={selected}
+          mode="date"
+          display="calendar"
+          minimumDate={minDate}
+          maximumDate={maxDate}
+          onChange={handleAndroidChange}
+        />
+      ) : null}
+
+      {error ? (
+        <Text className="font-body text-sm text-warning">{error}</Text>
+      ) : null}
+    </View>
+  );
+}

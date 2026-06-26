@@ -114,13 +114,36 @@ export function withDefaultMorningTime(date: Date): string {
 export function getNextBirthday(birthdateStr: string): string {
   const birth = parseDeliveryInput(birthdateStr);
   const today = new Date();
-  const next = defaultDeliveryTime(
-    new Date(today.getFullYear(), birth.getMonth(), birth.getDate())
-  );
-  if (next <= today) {
-    next.setFullYear(today.getFullYear() + 1);
+  today.setHours(0, 0, 0, 0);
+
+  let next = new Date(today.getFullYear(), birth.getMonth(), birth.getDate(), 9, 0, 0, 0);
+  if (next.getTime() <= Date.now()) {
+    next = new Date(today.getFullYear() + 1, birth.getMonth(), birth.getDate(), 9, 0, 0, 0);
   }
   return next.toISOString();
+}
+
+const BIRTHDATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidBirthdate(dateStr: string): boolean {
+  if (!BIRTHDATE_RE.test(dateStr)) return false;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== m - 1 ||
+    date.getDate() !== d
+  ) {
+    return false;
+  }
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 59, 999);
+  return date.getTime() <= endOfToday.getTime();
+}
+
+export function parseBirthdateToDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
 }
 
 export function startOfToday(): Date {
