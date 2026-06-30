@@ -1,6 +1,6 @@
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback, useMemo } from "react";
-import { View, RefreshControl, Text, Pressable } from "react-native";
+import { View, RefreshControl, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +23,9 @@ import {
   canViewerOpenCapsule,
   isCapsuleSentToOthers,
 } from "@/utils/capsule";
-import { COLORS } from "@/constants";
+import { COLORS, SHADOW_STYLES } from "@/constants";
+import { FadeInView } from "@/components/layout/FadeInView";
+import { ScalePressable } from "@/components/ui/ScalePressable";
 import type { Capsule } from "@/types";
 
 type VaultItem =
@@ -130,21 +132,31 @@ export default function VaultScreen() {
     }, [refetch])
   );
 
-  const renderItem = ({ item }: { item: VaultItem }) => {
+  const renderItem = ({ item, index }: { item: VaultItem; index: number }) => {
     if (item.kind === "header") {
-      return <VaultSectionHeader title={item.title} />;
+      return (
+        <FadeInView index={Math.min(index, 6)} variant="fade">
+          <VaultSectionHeader title={item.title} />
+        </FadeInView>
+      );
     }
     if (item.kind === "plant") {
-      return <PlantMemoryCard onPress={() => router.push("/(tabs)/new")} />;
+      return (
+        <FadeInView index={Math.min(index, 6)}>
+          <PlantMemoryCard onPress={() => router.push("/(tabs)/new")} />
+        </FadeInView>
+      );
     }
     return (
-      <CapsuleCard
-        capsule={item.capsule}
-        nowMs={nowMs}
-        viewerUserId={user?.id}
-        viewerEmail={user?.email}
-        onPress={() => router.push(`/capsule/${item.capsule.id}`)}
-      />
+      <FadeInView index={Math.min(index, 6)}>
+        <CapsuleCard
+          capsule={item.capsule}
+          nowMs={nowMs}
+          viewerUserId={user?.id}
+          viewerEmail={user?.email}
+          onPress={() => router.push(`/capsule/${item.capsule.id}`)}
+        />
+      </FadeInView>
     );
   };
 
@@ -152,7 +164,6 @@ export default function VaultScreen() {
     <Screen>
       <SafeAreaView className="flex-1" edges={["top"]}>
         <AppHeader
-          showSearch
           avatarInitials={getInitials(user?.email)}
           onAvatarPress={() => router.push("/(tabs)/settings")}
         />
@@ -167,41 +178,53 @@ export default function VaultScreen() {
           <View className="flex-1 px-8">
             <LinearGradient
               colors={["#F3F4FF", COLORS.paper, COLORS.paper]}
-              className="flex-1 items-center justify-center"
+              style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
             >
-              <View className="absolute top-24 left-16 w-2 h-2 rounded-full bg-accent" />
-              <View className="w-24 h-24 rounded-full bg-surface items-center justify-center shadow-card mb-8">
-                <Star color={COLORS.slate} size={36} fill={COLORS.lavender} />
-              </View>
-              <Heading className="text-center text-2xl mb-3">
-                Your vault is quiet.
-              </Heading>
-              <BodyText muted className="text-center text-base leading-6 mb-8 px-4">
-                Start your first capsule to send a message across time.
-              </BodyText>
-              <Pressable
-                onPress={() => router.push("/(tabs)/new")}
-                className="bg-slate rounded-pill px-8 py-4 shadow-card"
-                accessibilityRole="button"
-              >
-                <Text className="font-body-medium text-white text-base">
-                  + Create your first capsule
+              <View className="items-center w-full">
+                <FadeInView index={0}>
+                  <View className="w-24 h-24 rounded-full bg-surface items-center justify-center mb-8" style={SHADOW_STYLES.card}>
+                    <Star color={COLORS.slate} size={36} fill={COLORS.lavender} />
+                  </View>
+                </FadeInView>
+              <FadeInView index={1}>
+                <Heading className="text-center text-2xl mb-3">
+                  Your vault is quiet.
+                </Heading>
+              </FadeInView>
+              <FadeInView index={2}>
+                <BodyText muted className="text-center text-base leading-6 mb-8 px-4">
+                  Start your first capsule to send a message across time.
+                </BodyText>
+              </FadeInView>
+              <FadeInView index={3}>
+                <ScalePressable
+                  onPress={() => router.push("/(tabs)/new")}
+                  className="bg-slate rounded-pill px-8 py-4"
+                  style={SHADOW_STYLES.card}
+                  accessibilityRole="button"
+                >
+                  <Text className="font-body-medium text-white text-base">
+                    + Create your first capsule
+                  </Text>
+                </ScalePressable>
+              </FadeInView>
+              <FadeInView index={4} variant="fade">
+                <Text className="font-body text-[10px] text-muted uppercase tracking-widest mt-16 text-center">
+                  Preserving wisdom • Encrypting love
                 </Text>
-              </Pressable>
-              <Text className="font-body text-[10px] text-muted uppercase tracking-widest mt-16">
-                Preserving wisdom • Encrypting love
-              </Text>
+              </FadeInView>
+              </View>
             </LinearGradient>
           </View>
         ) : (
           <View className="flex-1">
-            <View className="px-6 pt-5 pb-2">
+            <FadeInView index={0} className="px-6 pt-5 pb-2">
               <Heading className="text-2xl">Memories in Waiting</Heading>
               <BodyText muted className="text-sm mt-2 leading-5">
                 A gallery of your digital legacies—some resting, some ready to be
                 rediscovered.
               </BodyText>
-            </View>
+            </FadeInView>
             <FlashList
               data={items}
               renderItem={renderItem}

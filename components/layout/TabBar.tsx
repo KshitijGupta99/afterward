@@ -1,9 +1,10 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Archive, PlusCircle } from "lucide-react-native";
 import { COLORS } from "@/constants";
 import { cn } from "@/utils/cn";
+import { ScalePressable } from "@/components/ui/ScalePressable";
 
 const VISIBLE_TABS = ["vault", "new"] as const;
 
@@ -44,7 +45,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           };
 
           return (
-            <Pressable
+            <ScalePressable
               key={route.key}
               onPress={onPress}
               accessibilityRole="button"
@@ -72,7 +73,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   {label}
                 </Text>
               </View>
-            </Pressable>
+            </ScalePressable>
           );
         })}
     </View>

@@ -1,6 +1,7 @@
-import { Pressable, Text, ActivityIndicator, type PressableProps } from "react-native";
+import { Text, ActivityIndicator, type PressableProps } from "react-native";
 import { cn } from "@/utils/cn";
 import { COLORS } from "@/constants";
+import { ScalePressable } from "@/components/ui/ScalePressable";
 
 interface ButtonProps extends PressableProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ export function Button({
   const isDisabled = disabled || loading;
 
   return (
-    <Pressable
+    <ScalePressable
       disabled={isDisabled}
       accessibilityRole="button"
       className={cn(
@@ -49,6 +50,6 @@ export function Button({
           {children}
         </Text>
       )}
-    </Pressable>
+    </ScalePressable>
   );
 }

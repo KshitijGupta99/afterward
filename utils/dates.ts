@@ -90,10 +90,6 @@ export function addYears(date: Date, years: number): Date {
   return result;
 }
 
-export function toDateString(date: Date): string {
-  return toLocalDateString(date);
-}
-
 export function defaultDeliveryTime(date: Date): Date {
   const d = new Date(date);
   d.setHours(9, 0, 0, 0);
@@ -144,14 +140,6 @@ export function isValidBirthdate(dateStr: string): boolean {
 export function parseBirthdateToDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d, 12, 0, 0, 0);
-}
-
-export function startOfToday(): Date {
-  return new Date();
-}
-
-export function isToday(dateStr: string): boolean {
-  return toLocalDateString(parseDeliveryInput(dateStr)) === toLocalDateString(new Date());
 }
 
 function endOfLocalDay(dateStr: string): number {

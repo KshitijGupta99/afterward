@@ -39,8 +39,6 @@ export const SHADOW_STYLES = {
   },
 } as const;
 
-export { fontFamilies } from "./fonts";
-
 export const STORAGE_BUCKET = "capsule-photos";
 
 export const DRAFT_STORAGE_KEY = "capsule_draft";

@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import {
   Lock,
   Clock,
@@ -7,7 +7,8 @@ import {
   Mail,
   Image as ImageIcon,
 } from "lucide-react-native";
-import { COLORS } from "@/constants";
+import { COLORS, SHADOW_STYLES } from "@/constants";
+import { ScalePressable } from "@/components/ui/ScalePressable";
 import {
   formatCapsuleDelivery,
   formatDisplayDateTime,
@@ -165,7 +166,10 @@ export function CapsuleCard({
   const pressable = (isDelivered && canOpen) || (!isDelivered && !sentToOthers);
 
   const content = (
-    <View className="bg-surface rounded-card p-5 mb-4 shadow-soft border border-lavender/50">
+    <View
+      className="bg-surface rounded-card p-5 mb-4 border border-lavender/50"
+      style={SHADOW_STYLES.soft}
+    >
       <View className="flex-row justify-end mb-3">
         <StatusBadge {...badge} />
       </View>
@@ -233,11 +237,11 @@ export function CapsuleCard({
           <Text className="font-display text-base text-slate mt-0.5">{footerDate}</Text>
         </View>
         {isDelivered && canOpen ? (
-          <Pressable onPress={onPress} accessibilityRole="button">
+          <ScalePressable onPress={onPress} accessibilityRole="button">
             <Text className="font-body-medium text-sm text-slate">
               {isOpened ? "Revisit" : "Open"}
             </Text>
-          </Pressable>
+          </ScalePressable>
         ) : (
           <Hourglass color={COLORS.accent} size={18} />
         )}
@@ -247,9 +251,9 @@ export function CapsuleCard({
 
   if (pressable && onPress) {
     return (
-      <Pressable onPress={onPress} accessibilityRole="button">
+      <ScalePressable onPress={onPress} accessibilityRole="button">
         {content}
-      </Pressable>
+      </ScalePressable>
     );
   }
   return content;
@@ -257,7 +261,7 @@ export function CapsuleCard({
 
 export function PlantMemoryCard({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable
+    <ScalePressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Plant a new memory"
@@ -270,7 +274,7 @@ export function PlantMemoryCard({ onPress }: { onPress: () => void }) {
       <Text className="font-body text-sm text-muted text-center">
         What would you like to say to the future?
       </Text>
-    </Pressable>
+    </ScalePressable>
   );
 }
 

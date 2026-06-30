@@ -2,7 +2,6 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import Constants from "expo-constants";
 import { updateProfile } from "@/services/capsules";
-import { NOTIFICATION_COPY } from "@/constants";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -108,12 +107,3 @@ export function addNotificationListeners(
     responseSub.remove();
   };
 }
-
-export function getCapsuleIdFromNotification(
-  notification: Notifications.Notification
-): string | null {
-  const capsuleId = notification.request.content.data?.capsuleId;
-  return typeof capsuleId === "string" ? capsuleId : null;
-}
-
-export { NOTIFICATION_COPY };

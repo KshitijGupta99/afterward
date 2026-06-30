@@ -1,14 +1,14 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { ChevronLeft, Search } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import { COLORS } from "@/constants";
 import { cn } from "@/utils/cn";
+import { ScalePressable } from "@/components/ui/ScalePressable";
 
 interface AppHeaderProps {
   title?: string;
   showBack?: boolean;
   onBack?: () => void;
-  showSearch?: boolean;
   avatarInitials?: string;
   onAvatarPress?: () => void;
   className?: string;
@@ -18,7 +18,6 @@ export function AppHeader({
   title = "Afterward",
   showBack = false,
   onBack,
-  showSearch = false,
   avatarInitials,
   onAvatarPress,
   className,
@@ -34,34 +33,29 @@ export function AppHeader({
     >
       <View className="w-10">
         {showBack ? (
-          <Pressable
+          <ScalePressable
             onPress={onBack ?? (() => router.back())}
             accessibilityRole="button"
             accessibilityLabel="Go back"
             className="p-1"
           >
             <ChevronLeft color={COLORS.ink} size={24} />
-          </Pressable>
+          </ScalePressable>
         ) : null}
       </View>
 
       <Text className="font-display text-lg text-slate tracking-wide">{title}</Text>
 
-      <View className="flex-row items-center gap-1 min-w-[72px] justify-end">
-        {showSearch ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Search" className="p-1">
-            <Search color={COLORS.ink} size={20} />
-          </Pressable>
-        ) : null}
+      <View className="w-10 items-end">
         {avatarInitials ? (
-          <Pressable
+          <ScalePressable
             onPress={onAvatarPress}
             accessibilityRole="button"
             accessibilityLabel="Open settings"
             className="w-8 h-8 rounded-full bg-lavender items-center justify-center"
           >
             <Text className="font-body-medium text-xs text-ink">{avatarInitials}</Text>
-          </Pressable>
+          </ScalePressable>
         ) : (
           <View className="w-8" />
         )}

@@ -182,13 +182,6 @@ export async function exportUserData(userId: string) {
   return { profile, capsules: capsules ?? [] };
 }
 
-export async function deleteAccount(userId: string) {
-  await supabase.from("capsules").delete().eq("user_id", userId);
-  await supabase.from("profiles").delete().eq("id", userId);
-  const { error } = await supabase.auth.signOut();
-  return !error;
-}
-
 export function draftFromForm(values: {
   title?: string;
   body: string;

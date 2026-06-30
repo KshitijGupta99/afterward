@@ -24,7 +24,7 @@ import { setBirthdate, getBirthdate } from "@/storage/mmkv";
 import { supabase } from "@/supabase/client";
 import { registerForPushNotifications } from "@/notifications";
 import { getInitials } from "@/utils/user";
-import { COLORS } from "@/constants";
+import { COLORS, SHADOW_STYLES } from "@/constants";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -222,7 +222,7 @@ function SettingsCard({
   children: React.ReactNode;
 }) {
   return (
-    <View className="bg-surface rounded-card p-5 mb-4 border border-lavender/50 shadow-soft">
+    <View className="bg-surface rounded-card p-5 mb-4 border border-lavender/50" style={SHADOW_STYLES.soft}>
       <View className="flex-row items-center gap-2 mb-3">
         <Icon color={COLORS.ink} size={18} strokeWidth={1.5} />
         <Text className="font-display text-lg text-slate">{title}</Text>
