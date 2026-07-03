@@ -31,7 +31,9 @@ cp .env.example .env
 1. Create a project at [supabase.com](https://supabase.com)
 2. Run the migration in `supabase/migrations/001_initial_schema.sql` via the SQL editor
 3. Enable Email auth (magic link) in Authentication → Providers
-4. Add redirect URL: `afterward://verify`
+4. Add redirect URLs in Authentication → URL Configuration:
+  - `afterward://auth/callback` (primary magic-link callback used by the app)
+  - `afterward://verify` (legacy/supported route)
 
 ### 4. Resend
 

@@ -30,9 +30,9 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: LoginFormData) => {
     setError(null);
-    const { error: authError } = await signInWithEmail(data.email);
+    const { error: authError, message } = await signInWithEmail(data.email);
     if (authError) {
-      setError(authError.message);
+      setError(message ?? authError.message);
       return;
     }
     router.push({ pathname: "/(auth)/verify", params: { email: data.email } });
