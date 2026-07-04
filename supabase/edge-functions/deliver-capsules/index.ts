@@ -25,6 +25,10 @@ interface ProfileRow {
   notifications_enabled: boolean;
 }
 
+type PushResult =
+  | { ok: true; status: number }
+  | { ok: false; status: number; error: string };
+
 function isCapsuleDue(capsule: CapsuleRow, nowMs: number): boolean {
   if (capsule.delivery_at) {
     return new Date(capsule.delivery_at).getTime() <= nowMs;
@@ -117,8 +121,20 @@ serve(async (req) => {
             .eq("id", capsule.id);
         }
 
+        let push: PushResult | null = null;
         if (profile?.expo_push_token && profile.notifications_enabled) {
-          await sendExpoPush(profile.expo_push_token, capsule.id);
+          try {
+            push = await sendExpoPush(profile.expo_push_token, capsule.id);
+          } catch (pushErr) {
+            push = {
+              ok: false,
+              status: 0,
+              error:
+                pushErr instanceof Error
+                  ? pushErr.message
+                  : "Unknown push error",
+            };
+          }
         }
 
         await supabase
@@ -134,6 +150,7 @@ serve(async (req) => {
           status: "delivered",
           recipient: recipientEmail,
           emailId,
+          push,
         });
       } catch (err) {
         await supabase
@@ -222,8 +239,8 @@ function buildEmailHtml(
 </html>`;
 }
 
-async function sendExpoPush(token: string, capsuleId: string) {
-  await fetch("https://exp.host/--/api/v2/push/send", {
+async function sendExpoPush(token: string, capsuleId: string): Promise<PushResult> {
+  const response = await fetch("https://exp.host/--/api/v2/push/send", {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -239,4 +256,36 @@ async function sendExpoPush(token: string, capsuleId: string) {
       channelId: "delivery",
     }),
   });
+
+  const responseText = await response.text();
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: response.status,
+      error: responseText || "Expo push request failed",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(responseText) as {
+      data?: Array<{ status?: string; message?: string }>;
+      errors?: Array<{ message?: string }>;
+    };
+
+    const topError = parsed.errors?.[0]?.message;
+    const ticketError = parsed.data?.find((t) => t.status === "error")?.message;
+    const error = topError ?? ticketError;
+
+    if (error) {
+      return {
+        ok: false,
+        status: response.status,
+        error,
+      };
+    }
+  } catch {
+    // If Expo returns non-JSON, treat HTTP success as accepted.
+  }
+
+  return { ok: true, status: response.status };
 }

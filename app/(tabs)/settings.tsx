@@ -43,6 +43,12 @@ export default function SettingsScreen() {
     if (stored) setBirthdateLocal(stored);
   }, [profile?.birthdate]);
 
+  useEffect(() => {
+    if (typeof profile?.notifications_enabled === "boolean") {
+      setNotifications(profile.notifications_enabled);
+    }
+  }, [profile?.notifications_enabled]);
+
   const saveBirthdate = async () => {
     if (!user || !birthdate) return;
     if (!isValidBirthdate(birthdate)) {

@@ -28,6 +28,14 @@ export async function registerForPushNotifications(
   userId: string
 ): Promise<{ token: string | null; error?: string }> {
   try {
+    if (Constants.appOwnership === "expo") {
+      return {
+        token: null,
+        error:
+          "Push notifications do not work in Expo Go. Use a development build (npx expo run:android or EAS dev build).",
+      };
+    }
+
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
 
@@ -42,11 +50,11 @@ export async function registerForPushNotifications(
 
     const projectId = getEasProjectId();
 
-    if (Platform.OS === "android" && !projectId) {
+    if (!projectId) {
       return {
         token: null,
         error:
-          "EAS project ID missing from this build. Run: npx expo prebuild --clean && npx expo run:android",
+          "EAS project ID missing from this build. Rebuild the app with EAS metadata and try again.",
       };
     }
 
@@ -55,6 +63,13 @@ export async function registerForPushNotifications(
     });
 
     const token = tokenData.data;
+
+    if (!token.startsWith("ExponentPushToken[")) {
+      return {
+        token: null,
+        error: `Unexpected push token format: ${token}`,
+      };
+    }
 
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("delivery", {
