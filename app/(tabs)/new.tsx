@@ -251,12 +251,12 @@ export default function NewCapsuleScreen() {
                   onPress={handlePickImage}
                   className="flex-1 aspect-square border-2 border-dashed border-lavender-deep rounded-card bg-lavender/50 items-center justify-center"
                   accessibilityRole="button"
-                  accessibilityLabel="Add photo or video"
+                  accessibilityLabel="Add photo"
                 >
                   <View className="w-10 h-10 rounded-full border border-accent items-center justify-center mb-2">
                     <Plus color={COLORS.ink} size={20} />
                   </View>
-                  <Text className="font-body text-xs text-muted">Photo / Video</Text>
+                  <Text className="font-body text-xs text-muted">Photo </Text>
                 </Pressable>
               ) : (
                 <View className="flex-1 aspect-square rounded-card overflow-hidden relative">

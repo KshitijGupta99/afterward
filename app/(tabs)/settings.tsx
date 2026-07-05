@@ -205,12 +205,12 @@ export default function SettingsScreen() {
           <View className="gap-3">
             <ActionRow icon={Download} label="Export my data" onPress={handleExport} />
             <ActionRow icon={LogOut} label="Sign out" onPress={handleSignOut} />
-            <ActionRow
-              icon={Trash2}
-              label="Delete account"
-              onPress={handleDeleteAccount}
-              destructive
-            />
+            {/* <ActionRow
+            icon={Trash2}
+            label="Delete account"
+            onPress={handleDeleteAccount}
+            destructive
+          /> */}
           </View>
         </ScrollView>
       </SafeAreaView>
